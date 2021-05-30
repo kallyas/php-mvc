@@ -1,0 +1,17 @@
+{
+    "name": "kallyas/mvc",
+    "description": "custom php framework",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Kallyas",
+            "email": "kallyasmedia@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "app\\": "./"
+        }
+    },
+    "require": {}
+}
