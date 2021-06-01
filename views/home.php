@@ -1,3 +1,5 @@
-<?php
+<h1>Home</h1>
 
-echo "Home page!";
+
+<h3>Welcome <?php echo $name; ?>
+</h3>
