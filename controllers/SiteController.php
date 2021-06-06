@@ -3,6 +3,7 @@
 namespace app\controllers;
 
 use app\core\Application;
+use app\core\Request;
 
 /**
  * class SiteController
@@ -11,7 +12,7 @@ use app\core\Application;
  * @package app\controllers
  */
 
-class SiteController
+class SiteController extends Controller
 {
 
     public static function home()
@@ -20,7 +21,7 @@ class SiteController
             'name' => "Kallyas"
         ];
 
-        return Application::$app->router->renderView("home", $params);
+        return SiteController::render("home", $params);
     }
 
     public static function contact()
@@ -28,8 +29,8 @@ class SiteController
         return Application::$app->router->renderView('contact');
     }
 
-    public static function handleContact()
+    public static function handleContact(Request $request)
     {
-        return "Handling submitted data";
+        $request->getBody();
     }
 }
