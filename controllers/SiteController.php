@@ -3,7 +3,12 @@
 namespace app\controllers;
 
 use app\core\Application;
+use app\core\Controller;
+use app\middlewares\AuthMiddleware;
 use app\core\Request;
+use app\core\Response;
+use app\models\LoginForm;
+use app\models\User;
 
 /**
  * class SiteController
@@ -14,23 +19,64 @@ use app\core\Request;
 
 class SiteController extends Controller
 {
-
-    public static function home()
+    public function __construct()
     {
-        $params = [
-            'name' => "Kallyas"
-        ];
-
-        return SiteController::render("home", $params);
+        $this->registerMiddleware(new AuthMiddleware(['profile']));
     }
 
-    public static function contact()
+    public function home()
     {
-        return Application::$app->router->renderView('contact');
+        return $this->render('home', [
+            'name' => 'PHP MVC'
+        ]);
     }
 
-    public static function handleContact(Request $request)
+    public function login(Request $request)
     {
-        $request->getBody();
+        $loginForm = new LoginForm();
+        if ($request->getMethod() === 'post') {
+            $loginForm->loadData($request->getBody());
+            if ($loginForm->validate() && $loginForm->login()) {
+                Application::$app->response->redirect('/');
+                return;
+            }
+        }
+        $this->setLayout('auth');
+        return $this->render('login', [
+            'model' => $loginForm
+        ]);
+    }
+
+    public function register(Request $request)
+    {
+        $registerModel = new User();
+        if ($request->getMethod() === 'post') {
+            $registerModel->loadData($request->getBody());
+            if ($registerModel->validate() && $registerModel->save()) {
+                Application::$app->session->setFlash('success', 'Thanks for registering');
+                Application::$app->response->redirect('/');
+                return 'Show success page';
+            }
+        }
+        $this->setLayout('auth');
+        return $this->render('register', [
+            'model' => $registerModel
+        ]);
+    }
+
+    public function logout(Request $request, Response $response)
+    {
+        Application::$app->logout();
+        $response->redirect('/');
+    }
+
+    public function contact()
+    {
+        return $this->render('contact');
+    }
+
+    public function profile()
+    {
+        return $this->render('profile');
     }
 }
