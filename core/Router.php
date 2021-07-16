@@ -2,11 +2,13 @@
 
 namespace app\core;
 
+use app\exception\NotFoundException;
+
 class Router
 {
-    public Request $request;
-    public Response $response;
-    protected array $routes = [];
+    private Request $request;
+    private Response $response;
+    private array $routeMap = [];
 
     public function __construct(Request $request, Response $response)
     {
@@ -14,66 +16,47 @@ class Router
         $this->response = $response;
     }
 
-
-    public function get($path, $callback)
+    public function get(string $url, $callback)
     {
-        $this->routes['get'][$path] = $callback;
+        $this->routeMap['get'][$url] = $callback;
     }
 
-    public function post($path, $callback)
+    public function post(string $url, $callback)
     {
-        $this->routes['post'][$path] = $callback;
+        $this->routeMap['post'][$url] = $callback;
     }
 
     public function resolve()
     {
-        $path = $this->request->getPath();
-        $method = $this->request->Method();
-        $callback = $this->routes[$method][$path] ?? false;
-
-        if ($callback === false) {
-            $this->response->setStatusCode(404);
-            return $this->renderView("_404");
+        $method = $this->request->getMethod();
+        $url = $this->request->getUrl();
+        $callback = $this->routeMap[$method][$url] ?? false;
+        if (!$callback) {
+            throw new NotFoundException();
         }
-
         if (is_string($callback)) {
             return $this->renderView($callback);
         }
-
         if (is_array($callback)) {
-            $callback[0] = new $callback[0]();
+            $controller = new $callback[0];
+            $controller->action = $callback[1];
+            Application::$app->controller = $controller;
+            $middlewares = $controller->getMiddlewares();
+            foreach ($middlewares as $middleware) {
+                $middleware->execute();
+            }
+            $callback[0] = $controller;
         }
-
-        return call_user_func($callback, $this->request);
+        return call_user_func($callback, $this->request, $this->response);
     }
 
     public function renderView($view, $params = [])
     {
-        $layoutContent = $this->layoutContent();
-        $viewContent = $this->renderOnlyView($view, $params);
-        return str_replace("{{content}}", $viewContent, $layoutContent);
+        return Application::$app->view->renderView($view, $params);
     }
 
-    public function renderContent($content)
+    public function renderViewOnly($view, $params = [])
     {
-        $layoutContent = $this->layoutContent();
-        return str_replace("{{content}}", $content, $layoutContent);
-    }
-
-    protected function layoutContent()
-    {
-        ob_start();
-        include_once Application::$ROOT_DIR . "/views/layouts/main.php";
-        return ob_get_clean();
-    }
-
-    protected function renderOnlyView($view, $params)
-    {
-        foreach ($params as $key => $value) {
-            $$key = $value;
-        }
-        ob_start();
-        include_once Application::$ROOT_DIR . "/views/$view.php";
-        return ob_get_clean();
+        return Application::$app->view->renderViewOnly($view, $params);
     }
 }
